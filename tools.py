@@ -8,9 +8,10 @@ from indexing import vector_store
 backend = StateBackend()
 
 
+@tool(parse_docstring=True)
 def search_documents(query: str):
     """
-    Search langchain documentation and save matching chunks to the agent filesystem
+    Search pdf documentation and save matching chunks to the agent filesystem
 
     Args:
         query: Natural language search query
@@ -27,7 +28,13 @@ def search_documents(query: str):
 
     for index, doc in enumerate(retrieved_docs, start=1):
         path = f"/retrieved/{batch_id}/chunk_{index}.md"
-        content = f"# Source: {doc.metadata.get('source', 'unknown')} \n"
+        content = (
+            f"# Source: {doc.metadata.get('source', 'unknown')} \n {doc.page_content}"
+        )
 
+        uploads.append((path, content.encode("utf-8")))
+        saved_paths.append(path)
 
-search_documents("hello")
+    backend.upload_files(uploads)
+
+    return f"saved {len(saved_paths)} documentation chunks: \n" + "\n".join(saved_paths)
